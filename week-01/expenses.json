@@ -1,0 +1,16 @@
+[
+  { "item": "Coffee beans", "category": "Supplies", "amount": 18500 },
+  { "item": "Milk", "category": "Supplies", "amount": 9200 },
+  { "item": "Electricity bill", "category": "Utilities", "amount": 27400 },
+  {
+    "item": "Espresso machine repair",
+    "category": "Equipment",
+    "amount": 35000
+  },
+  { "item": "Paper cups", "category": "Supplies", "amount": 6300 },
+  { "item": "Internet", "category": "Utilities", "amount": 4500 },
+  { "item": "Social media ads", "category": "Marketing", "amount": 12000 },
+  { "item": "Barista wages", "category": "Staff", "amount": 60000 },
+  { "item": "Sugar and syrups", "category": "Supplies", "amount": 7800 },
+  { "item": "Flyers", "category": "Marketing", "amount": 3500 }
+]
