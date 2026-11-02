@@ -1,0 +1,11 @@
+{
+  "expense_count": 10,
+  "total": 184200,
+  "by_category": {
+    "Supplies": 41800,
+    "Utilities": 31900,
+    "Equipment": 35000,
+    "Marketing": 15500,
+    "Staff": 60000
+  }
+}
