@@ -4,7 +4,7 @@ EXPENSES_FILE = "week-01/expenses.json"
 SUMMARY_FILE = "week-01/summary.json"
 APPROVAL_LIMIT = 25000
 
-# Loads JSON data from file
+
 def load_expenses(path):
     try:
         with open(path, "r") as file:
@@ -16,75 +16,93 @@ def load_expenses(path):
         print(f"Could not read {path}: invalid JSON format")
         return None
 
-#  Dynamically groups and sums expenses by category
+
 def calculate_category_totals(expenses):
     totals = {}
     for entry in expenses:
         category = entry["category"]
         amount = entry["amount"]
-        totals[category] = totals.get(category, 0) + amount
+        if category in totals:
+            totals[category] = totals[category] + amount
+        else:
+            totals[category] = amount
     return totals
 
-# Finds the single expense with the highest amount
+
 def find_largest_expense(expenses):
-    if not expenses:
+    if len(expenses) == 0:
         return None
     largest = expenses[0]
-    for entry in expenses[1:]:
+    for entry in expenses:
         if entry["amount"] > largest["amount"]:
             largest = entry
     return largest
 
-#  Returns all expenses exceeding the approval limit
+
 def filter_high_expenses(expenses, limit):
-    return [entry for entry in expenses if entry["amount"] > limit]
+    flagged = []
+    for entry in expenses:
+        if entry["amount"] > limit:
+            flagged.append(entry)
+    return flagged
 
-# Formats an integer amount into comma-separated currency string
-def format_rupees(amount):
-    return f"Rs {amount:,}"
 
-# Saves expense summary dictionary into a JSON file for the accountant
 def save_summary(path, count, total, by_category):
     summary_data = {
         "expense_count": count,
         "total": total,
-        "by_category": by_category,
+        "by_category": by_category
     }
     with open(path, "w") as file:
         json.dump(summary_data, file, indent=2)
 
-# Calculates summary values and prints the required formatted output
+
 def print_report(expenses):
-    total_spent = sum(entry["amount"] for entry in expenses)
+    # 1. Calculate the overall total
+    total_spent = 0
+    for entry in expenses:
+        total_spent = total_spent + entry["amount"]
+
     expense_count = len(expenses)
     categories = calculate_category_totals(expenses)
     largest = find_largest_expense(expenses)
     high_expenses = filter_high_expenses(expenses, APPROVAL_LIMIT)
 
+    # 2. Print Header
     print("Cafe expense report")
     print(f"Expenses recorded: {expense_count}")
-    print(f"Total spent: {format_rupees(total_spent)}")
+    print(f"Total spent: Rs {total_spent:,}")
     print()
+
+    # 3. Print Categories
     print("By category:")
-    for cat, total in categories.items():
-        print(f"  {cat:<10} Rs {total:>7,}")
+    for cat in categories:
+        cat_amount = categories[cat]
+        print(f"  {cat:<10} Rs {cat_amount:>7,}")
 
+    # 4. Print Largest
     print()
-    if largest:
-        print(
-            f"Largest expense: {largest['item']} ({format_rupees(largest['amount'])})"
-        )
+    if largest is not None:
+        name = largest["item"]
+        amt = largest["amount"]
+        print(f"Largest expense: {name} (Rs {amt:,})")
 
+    # 5. Print Approval List
     print()
-    print(f"Needs approval (over {format_rupees(APPROVAL_LIMIT)}): {len(high_expenses)}")
+    print(f"Needs approval (over Rs {APPROVAL_LIMIT:,}): {len(high_expenses)}")
     for entry in high_expenses:
-        print(f"  - {entry['item']}: {format_rupees(entry['amount'])}")
+        item_name = entry["item"]
+        item_amt = entry["amount"]
+        print(f"  - {item_name}: Rs {item_amt:,}")
 
+    # 6. Save the machine-readable file
     save_summary(SUMMARY_FILE, expense_count, total_spent, categories)
 
 
 def main():
     expenses = load_expenses(EXPENSES_FILE)
+    
+    # Only run the report if the file loaded successfully without errors
     if expenses is not None:
         print_report(expenses)
 

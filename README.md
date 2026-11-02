@@ -2,7 +2,7 @@
 
 ## Week 1: Café Expense Report
 
-A Python script that ingests monthly café expenses from JSON, calculates totals dynamically by category, flags items requiring owner approval, and exports a clean summary JSON.
+A Python script that loads monthly café expenses from JSON, calculates dynamic category totals, highlights expenses requiring manager approval, and exports a summary JSON file.
 
 ### How to Run:
 
