@@ -1,0 +1,5 @@
+{
+  "workbench.settings.alwaysShowAdvancedSettings": false,
+  "python.defaultInterpreterPath": "${workspaceFolder}/week-03/orders-api/.venv/Scripts/python.exe",
+  "mypy-type-checker.importStrategy": "fromEnvironment"
+}
