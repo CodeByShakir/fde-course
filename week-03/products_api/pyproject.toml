@@ -19,3 +19,9 @@ build-backend = "uv_build"
 
 [tool.fastapi]
 entrypoint = "products_api.main:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
