@@ -1,0 +1,23 @@
+from collections.abc import Generator
+from functools import lru_cache
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy import Engine
+from sqlmodel import Session, create_engine
+
+from noor_foods_api.config import get_settings
+
+
+@lru_cache
+def get_engine() -> Engine:
+    settings = get_settings()
+    return create_engine(settings.database_url, echo=True)
+
+
+def get_session() -> Generator[Session, None, None]:
+    with Session(get_engine()) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_session)]
