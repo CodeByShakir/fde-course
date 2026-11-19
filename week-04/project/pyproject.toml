@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.20.1",
     "fastapi[standard]>=0.163.2",
     "psycopg[binary]>=3.3.9",
     "pydantic-settings>=2.16.3",
@@ -17,6 +18,9 @@ dependencies = [
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "noor_foods_api"
 
 [tool.fastapi]
 entrypoint = "noor_foods_api.main:app"
