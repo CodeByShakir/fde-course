@@ -1,11 +1,12 @@
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
+from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import StringConstraints
 from sqlalchemy import DateTime, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def utc_now() -> datetime:
@@ -116,6 +117,14 @@ class DiscountCode(SQLModel, table=True):
     valid_to: date
 
 
+class OrderStatus(StrEnum):
+    pending = "pending"
+    confirmed = "confirmed"
+    out_for_delivery = "out_for_delivery"
+    delivered = "delivered"
+    cancelled = "cancelled"
+
+
 class Order(SQLModel, table=True):
     __tablename__ = "orders"
 
@@ -124,7 +133,7 @@ class Order(SQLModel, table=True):
     ordered_at: datetime = Field(
         default_factory=utc_now, sa_type=DateTime(timezone=True)
     )
-    status: str = Field(default="pending", sa_type=Text)
+    status: OrderStatus = Field(default=OrderStatus.pending, sa_type=Text)
     rider_id: int | None = Field(
         default=None, foreign_key="riders.rider_id", ondelete="SET NULL"
     )
@@ -137,6 +146,17 @@ class Order(SQLModel, table=True):
     delivered_at: datetime | None = Field(
         default=None, sa_type=DateTime(timezone=True)
     )
+
+    customer: Customer = Relationship()
+    items: list[OrderItem] = Relationship(back_populates="order")
+
+    @property
+    def customer_name(self) -> str:
+        return self.customer.full_name
+
+    @property
+    def items_total(self) -> Decimal:
+        return sum((item.line_total for item in self.items), Decimal("0"))
 
 
 class OrderItem(SQLModel, table=True):
@@ -151,6 +171,40 @@ class OrderItem(SQLModel, table=True):
     product_id: int = Field(foreign_key="products.product_id", primary_key=True)
     quantity: int
     unit_price: Decimal = Field(max_digits=10, decimal_places=2)
+
+    order: Order = Relationship(back_populates="items")
+    product: Product = Relationship()
+
+    @property
+    def product_name(self) -> str:
+        return self.product.name
+
+    @property
+    def line_total(self) -> Decimal:
+        return self.unit_price * self.quantity
+
+
+class OrderItemRead(SQLModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    unit_price: Decimal
+    line_total: Decimal
+
+
+class OrderRead(SQLModel):
+    order_id: int
+    customer_id: int
+    customer_name: str
+    status: OrderStatus
+    ordered_at: datetime
+    delivered_at: datetime | None
+    delivery_fee: Decimal
+
+
+class OrderDetail(OrderRead):
+    items: list[OrderItemRead]
+    items_total: Decimal
 
 
 class RiderShift(SQLModel, table=True):

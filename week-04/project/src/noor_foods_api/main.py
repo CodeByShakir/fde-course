@@ -1,68 +1,59 @@
-from typing import Annotated, Any
+import logging
+import time
+from collections.abc import Awaitable, Callable
 
-from fastapi import FastAPI, Query, Response, status
+from fastapi import FastAPI, Request, Response, status
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
-from . import crud
-from .dependencies import ProductDep, SessionDep
-from .models import Category, ProductCreate, ProductRead, ProductUpdate
+from .config import configure_logging, get_settings
+from .routers import categories, orders, products
+
+configure_logging(debug=get_settings().debug)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Noor Foods API",
     description="Products, orders and stock for Noor Foods.",
 )
 
+app.include_router(categories.router)
+app.include_router(products.router)
+app.include_router(orders.router)
+
+
+@app.middleware("http")
+async def log_requests(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = (time.perf_counter() - start_time) * 1000
+
+    logger.info(
+        "%s %s completed in %.2fms with status code %s",
+        request.method,
+        request.url.path,
+        process_time,
+        response.status_code,
+    )
+    return response
+
+
+@app.exception_handler(IntegrityError)
+def handle_integrity_error(
+    request: Request, exc: IntegrityError
+) -> JSONResponse:
+    logger.warning("Integrity error on %s: %s", request.url.path, exc.orig)
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "detail": "This conflicts with existing data, such as a "
+            "duplicate value or a row that is still in use."
+        },
+    )
+
 
 @app.get("/")
 def read_root() -> dict[str, str]:
     return {"app": "Noor Foods API", "docs": "/docs"}
-
-
-@app.get("/categories")
-def list_categories(session: SessionDep) -> list[Category]:
-    return crud.list_categories(session)
-
-
-@app.get("/products", response_model=list[ProductRead])
-def list_products(
-    session: SessionDep,
-    category_id: int | None = None,
-    search: str | None = None,
-    in_stock: bool | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> Any:
-    return crud.list_products(
-        session,
-        category_id=category_id,
-        search=search,
-        in_stock=in_stock,
-        limit=limit,
-        offset=offset,
-    )
-
-
-@app.get("/products/{product_id}", response_model=ProductRead)
-def get_product(product: ProductDep) -> Any:
-    return product
-
-
-@app.post(
-    "/products",
-    response_model=ProductRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_product(payload: ProductCreate, session: SessionDep) -> Any:
-    return crud.create_product(session, payload)
-
-
-@app.patch("/products/{product_id}", response_model=ProductRead)
-def update_product(
-    product: ProductDep, payload: ProductUpdate, session: SessionDep
-) -> Any:
-    return crud.update_product(session, product, payload)
-
-
-@app.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(product: ProductDep, session: SessionDep) -> Response:
-    crud.delete_product(session, product)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
